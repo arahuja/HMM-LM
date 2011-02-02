@@ -1,0 +1,48 @@
+CC = mpic++
+DEBUG = -g -showme
+CFLAGS = -c -g -O2
+LFLAGS = -O2
+TAR = tar cvf
+COMPRESS = gzip
+PROJ = pHMM
+LOAD_MPI = module load openmpi-1.3.3/gcc-4.1.2
+VERSION = `date +%Y%m%d`
+
+DELIVERY = Makefile *.h *.cpp *.py
+PROGS = createVocab translateFile trainHMM testHMM trainIter evalIter trainGibbs getNearestNeighbors
+SRCS = hmm.cpp basicProbability.cpp utilities.cpp distribution.cpp
+OBJS = $(SRCS:.cpp=.o}
+
+all: $(PROGS)
+tar: 
+	$(TAR) ${PROJ}-${VERSION}.tar ${DELIVERY}
+
+createVocab: createVocab.o utilities.o distribution.o
+	$(CC) $(LFLAGS) createVocab.o utilities.o distribution.o -o $@
+
+getNearestNeighbors: getNearestNeighbors.o utilities.o hmm.o distribution.o basicProbability.o
+	$(CC) $(LFLAGS) getNearestNeighbors.o utilities.o hmm.o distribution.o basicProbability.o -o $@
+
+translateFile: translateFile.o utilities.o distribution.o
+	$(CC) $(LFLAGS) translateFile.o utilities.o distribution.o -o $@
+
+trainHMM: trainHMM.o hmm.o utilities.o distribution.o
+	$(CC) $(LFLAGS) trainHMM.o hmm.o utilities.o distribution.o -o $@
+
+trainGibbs: trainGibbs.o hmm.o utilities.o distribution.o
+	$(CC) $(LFLAGS) trainGibbs.o hmm.o utilities.o distribution.o -o $@
+
+testHMM: testHMM.o hmm.o utilities.o distribution.o
+	$(CC) $(LFLAGS) testHMM.o hmm.o utilities.o distribution.o -o $@
+
+trainIter: trainIter.o hmm.o utilities.o distribution.o
+	$(CC) $(LFLAGS) trainIter.o hmm.o utilities.o distribution.o -o $@
+
+evalIter: evalIter.o hmm.o utilities.o distribution.o
+	$(CC) $(LFLAGS) evalIter.o hmm.o utilities.o distribution.o -o $@
+
+.o:
+	$(CC) *.cpp
+
+clean:
+	rm *.o
