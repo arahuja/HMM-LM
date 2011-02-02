@@ -15,7 +15,7 @@ int maxVal(double* arr, int n)
 {
 	int maxindex = 0;
 	double maxval = arr[0];
-	for (int i =1; i < n; i++)
+	for (int i = 1; i < n; i++)
 	{
 		if (arr[i] > maxval)
 		{
@@ -23,103 +23,124 @@ int maxVal(double* arr, int n)
 			maxindex = i;
 		}
 	}
-	
+
 	return maxindex;
 }
-		
-void freeMatrix(double** matrix, int m, int n){
 
-	for (int i = 0; i < m; i++){
-		delete [] matrix[i];
+void freeMatrix(double** matrix, int m, int n)
+{
+
+	for (int i = 0; i < m; i++)
+	{
+		delete[] matrix[i];
 	}
-	delete [] matrix;
+	delete[] matrix;
 }
 
-double** createMatrix(int m, int n){
+double** createMatrix(int m, int n)
+{
 	double** matrix;
 	matrix = new double*[m];
-	for (int i = 0; i<m; i++){
+	for (int i = 0; i < m; i++)
+	{
 		matrix[i] = new double[n];
-		for (int j = 0; j<n; j++){
+		for (int j = 0; j < n; j++)
+		{
 			matrix[i][j] = 0;
 		}
 	}
 	return matrix;
 }
 
-void printMatrix( double ** matrix, int m, int n){
-	for (int i = 0; i < m; i++){
-		for (int j = 0; j < n; j++){
+void printMatrix(double ** matrix, int m, int n)
+{
+	for (int i = 0; i < m; i++)
+	{
+		for (int j = 0; j < n; j++)
+		{
 			cout << matrix[i][j] << " ";
 		}
 		cout << endl;
 	}
 }
 
-void printArray(double* array, int n){
-	for (int j = 0; j < n; j++){
+void printArray(double* array, int n)
+{
+	for (int j = 0; j < n; j++)
+	{
 		cout << array[j] << " ";
 	}
-		cout << endl;
+	cout << endl;
 }
 
-void zeroArray(double * a, int n){
-	for (int i =0; i< n; i++){
+void zeroArray(double * a, int n)
+{
+	for (int i = 0; i < n; i++)
+	{
 		a[i] = 0;
 	}
 }
 
-void zeroArray(int * a, int n){
-	for (int i =0; i< n; i++){
+void zeroArray(int * a, int n)
+{
+	for (int i = 0; i < n; i++)
+	{
 		a[i] = 0;
 	}
 }
 
-void createVocab( char * vocab, char * vocabOut){
+void createVocab(char * vocab, char * vocabOut)
+{
 	ofstream outputFile(vocabOut);
 	ifstream inputFile(vocab);
-	
+
 	map<string, int> vocabMap;
 	map<string, int> wordCount;
 	int numWords = 0;
 	string line;
-	while(getline(inputFile, line)){ // for every sentence
-		vector<string> words;
+	while (getline(inputFile, line))
+	{ // for every sentence
+		vector < string > words;
 		stringstream ss(line);
 		string buf;
 
-		while( ss >> buf){
+		while (ss >> buf)
+		{
 			words.push_back(buf);
 		}
 		int len = words.size();
-		for (int i =0; i< len; i++){
+		for (int i = 0; i < len; i++)
+		{
 			string s = words[i];
 			map<string, int>::iterator iter = vocabMap.find(s);
-			if (iter == vocabMap.end()){
+			if (iter == vocabMap.end())
+			{
 				numWords++;
-				vocabMap.insert(pair<string, int>(s, numWords));
-				wordCount.insert(pair<string, int>(s, 1));
+				vocabMap.insert(pair<string, int> (s, numWords));
+				wordCount.insert(pair<string, int> (s, 1));
 			}
-			else {
+			else
+			{
 				int currCount = wordCount.find(s)->second;
 				wordCount[s] = currCount + 1;
 			}
 		}
 	}
-	outputFile << numWords+1 <<endl;
+	outputFile << numWords + 1 << endl;
 	map<string, int>::iterator iter;
-	for (iter = vocabMap.begin(); iter != vocabMap.end(); ++iter){
-		outputFile << iter->first << " " << iter->second <<  " " << wordCount[iter->first] <<  endl;
+	for (iter = vocabMap.begin(); iter != vocabMap.end(); ++iter)
+	{
+		outputFile << iter->first << " " << iter->second << " "
+				<< wordCount[iter->first] << endl;
 		//cout << iter->first << " " <<iter->second << wordCount[iter->first] << endl;
 	}
-				
-		
-	
+
 	inputFile.close();
 	outputFile.close();
 }
 
-void translateFile(char * vocab, char * input, char* output){
+void translateFile(char * vocab, char * input, char* output)
+{
 	ifstream vocabFile(vocab);
 	ifstream inputFile(input);
 	ofstream outputFile(output);
@@ -128,45 +149,52 @@ void translateFile(char * vocab, char * input, char* output){
 	string line;
 	getline(vocabFile, line);
 	int count = atoi(line.c_str());
-	while(getline(vocabFile, line)){
-		vector<string> words;
+	while (getline(vocabFile, line))
+	{
+		vector < string > words;
 		stringstream ss(line);
 		string buf;
 
-		while( ss >> buf){
+		while (ss >> buf)
+		{
 			words.push_back(buf);
 		}
-		vocabMap.insert(pair<string, int>(words[0], atoi(words[1].c_str())));
+		vocabMap.insert(pair<string, int> (words[0], atoi(words[1].c_str())));
 	}
 
-	while(getline(inputFile, line)){
-		vector<string> words;
+	while (getline(inputFile, line))
+	{
+		vector < string > words;
 		stringstream ss(line);
 		string buf;
 
-		while( ss >> buf){
+		while (ss >> buf)
+		{
 			words.push_back(buf);
 		}
 		int len = words.size();
-		for (int i =0; i< len; i++){
+		for (int i = 0; i < len; i++)
+		{
 			map<string, int>::iterator iter = vocabMap.find(words[i]);
-			if (iter != vocabMap.end()){
+			if (iter != vocabMap.end())
+			{
 				outputFile << iter->second << " ";
 			}
-			else {
+			else
+			{
 				outputFile << "0 ";
 			}
 		}
 		outputFile << endl;
 	}
-		
-	
+
 	vocabFile.close();
 	inputFile.close();
 	outputFile.close();
 }
 
-void loadVocabFromFile(char* vocab, map<string, int> * stringToIntvocabMap, map<int, string> * intToStringvocabMap)
+void loadVocabFromFile(char* vocab, map<string, int> * stringToIntvocabMap,
+		map<int, string> * intToStringvocabMap)
 {
 
 	ifstream vocabFile(vocab);
@@ -174,21 +202,26 @@ void loadVocabFromFile(char* vocab, map<string, int> * stringToIntvocabMap, map<
 	string line;
 	getline(vocabFile, line);
 	int count = atoi(line.c_str());
-	while(getline(vocabFile, line)){
-		vector<string> words;
+	while (getline(vocabFile, line))
+	{
+		vector < string > words;
 		stringstream ss(line);
 		string buf;
 
-		while( ss >> buf){
+		while (ss >> buf)
+		{
 			words.push_back(buf);
 		}
-		stringToIntvocabMap->insert(pair<string, int>(words[0], atoi(words[1].c_str())));
-		intToStringvocabMap->insert(pair<int, string>(atoi(words[1].c_str()), words[0]));
+		stringToIntvocabMap->insert(pair<string, int> (words[0], atoi(
+				words[1].c_str())));
+		intToStringvocabMap->insert(pair<int, string> (atoi(words[1].c_str()),
+				words[0]));
 	}
 	vocabFile.close();
 }
 
-void loadVocabFromFile(char* vocab, map<string, int> * stringToIntvocabMap, map<int, string> * intToStringvocabMap, map<int, int> * wordCount)
+void loadVocabFromFile(char* vocab, map<string, int> * stringToIntvocabMap,
+		map<int, string> * intToStringvocabMap, map<int, int> * wordCount)
 {
 
 	ifstream vocabFile(vocab);
@@ -196,17 +229,22 @@ void loadVocabFromFile(char* vocab, map<string, int> * stringToIntvocabMap, map<
 	string line;
 	getline(vocabFile, line);
 	int count = atoi(line.c_str());
-	while(getline(vocabFile, line)){
-		vector<string> words;
+	while (getline(vocabFile, line))
+	{
+		vector < string > words;
 		stringstream ss(line);
 		string buf;
 
-		while( ss >> buf){
+		while (ss >> buf)
+		{
 			words.push_back(buf);
 		}
-		stringToIntvocabMap->insert(pair<string, int>(words[0], atoi(words[1].c_str())));
-		intToStringvocabMap->insert(pair<int, string>(atoi(words[1].c_str()), words[0]));
-		wordCount->insert(pair<int, int>(atoi(words[1].c_str()), atoi(words[2].c_str())));
+		stringToIntvocabMap->insert(pair<string, int> (words[0], atoi(
+				words[1].c_str())));
+		intToStringvocabMap->insert(pair<int, string> (atoi(words[1].c_str()),
+				words[0]));
+		wordCount->insert(pair<int, int> (atoi(words[1].c_str()), atoi(
+				words[2].c_str())));
 	}
 	vocabFile.close();
 }
@@ -228,9 +266,9 @@ int argmax(double * arr, int n)
 	}
 	double max = arr[0];
 	int maxIndex = 0;
-	for (int i =1; i < n ; i++)
+	for (int i = 1; i < n; i++)
 	{
-		if ( arr[i] > max)
+		if (arr[i] > max)
 		{
 			max = arr[i];
 			maxIndex = i;
@@ -242,16 +280,16 @@ int argmax(double * arr, int n)
 void renormalize(double * dist, int n)
 {
 
-	double sum =0;
+	double sum = 0;
 
-	for ( int i =0 ; i < n; i++)
+	for (int i = 0; i < n; i++)
 	{
 		sum += dist[i];
 	}
 
-	for ( int i =0 ; i < n; i++)
+	for (int i = 0; i < n; i++)
 	{
 		dist[i] /= sum;
 	}
-	
-}	
+
+}

@@ -3,21 +3,20 @@
 
 #define MAX 999999
 
-class Distribution {
+class Distribution
+{
 
-	private:
-	
-		int n;
-		double *cum_dist;
-	
-	public:
-		Distribution(double *p, int n);
-		Distribution();
-		~Distribution();
-		int generate_sample(void);
-		void set_distribution(double *p, int n);
-	
+private:
 
+	int n;
+	double *cum_dist;
+
+public:
+	Distribution(double *p, int n);
+	Distribution();
+	~Distribution();
+	int generate_sample(void);
+	void set_distribution(double *p, int n);
 
 };
 
