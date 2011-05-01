@@ -2,7 +2,7 @@
  
  Unsupervised Hidden Markov Model
  
- Implemented here is a variable order unsupervised Hidden
+ Implemented here is a variable _order unsupervised Hidden
  Markov Model intended for use in language modeling.  It utilizes MPI
  to distribute the EM task in parallel.
  
@@ -28,89 +28,91 @@
 #include "basicProbability.h"
 
 /* HMM Constructor; create HMM object; takes
- INT r, order
+ INT r, _order
  INT n_states, number of states
  INT n_obs, vocabulary size */
 
-HMM::HMM(int r, int n_states, int n_obs)
+HMM::HMM(int order_, int numStates_, int numObs_)
 {
-	order = r;
-	num_states = n_states + 1;
-	num_obs = n_obs;
-	max_state = int(pow(num_states, order));
+	_order = order_;
+	_numStates = numStates_ + 1; //autoinclude begin/end state
+	_numObs = numObs_;
+	_maxState = int(pow(_numStates, _order));
 
 	/*Initial HMM parameter matrices */
-	transition = createMatrix(max_state, num_states);
-	observation = createMatrix(num_states, num_obs);
-	condstate_dist = createMatrix(num_obs, num_states);
-	initial_probability = new double[max_state];
-	state_dist = new double[num_states];
+	_pTransition = createMatrix(_maxState, _numStates);
+	_pObservation = createMatrix(_numStates, _numObs);
+	condstate_dist = createMatrix(_numObs, _numStates);
+	//_initial_probability = new double[_maxState];
+	_pState = new double[_numStates];
 	srand(time(0));
 
 	int sum;
-	for (int i = 0; i < max_state; i++)
+	for (int i = 0; i < _numObs; i++)
 	{
 		sum = 0;
-		transition[i][0] = 0;
-		for (int j = 1; j < num_states; j++)
+		//_pTransition[i][0] = 0;
+		for (int j = 0; j < _numStates; j++)
 		{
 			int r = (rand() % 10000) + 1;
-			transition[i][j] = r;
+			_pTransition[i][j] = r;
 			sum += r;
 		}
-		for (int j = 1; j < num_states; j++)
+		for (int j = 0; j < _numStates; j++)
 		{
-			transition[i][j] /= sum;
+			_pTransition[i][j] /= sum;
 		}
 
-		if (!checkDistribution(transition[i], num_states))
+		if (!checkDistribution(_pTransition[i], _numStates))
 		{
 			cout << "Degenerate" << endl;
+			exit(0);
 		}
 
 	}
 
-	for (int o = 0; o < num_obs; o++)
+	for (int o = 0; o < _numObs; o++)
 	{
-		observation[0][o] = 0.0;
+		_pObservation[0][o] = 0.0;
 	}
 
-	for (int i = 1; i < num_states; i++)
+	for (int i = 1; i < _numStates; i++)
 	{
 		sum = 0;
-		for (int o = 0; o < num_obs; o++)
+		for (int o = 0; o < _numObs; o++)
 		{
 			int r = (rand() % 10000) + 1;
-			observation[i][o] = r;
+			_pObservation[i][o] = r;
 			sum += r;
 		}
-		for (int o = 0; o < num_obs; o++)
+		for (int o = 0; o < _numObs; o++)
 		{
-			observation[i][o] /= sum;
+			_pObservation[i][o] /= sum;
 		}
-		if (!checkDistribution(observation[i], num_obs))
+		if (!checkDistribution(_pObservation[i], _numObs))
 		{
 			cout << "Degenerate" << endl;
+			exit(0);
 		}
 	}
 
-	initial_probability[0] = 0.0;
-	sum = 0;
-	for (int i = 1; i < num_states; i++)
-	{
-		int r = (rand() % 10000) + 1;
-		initial_probability[i] = r;
-		sum += r;
-	}
-	for (int i = 1; i < num_states; i++)
-	{
-		initial_probability[i] /= sum;
-	}
-
-	for (int i = num_states; i < max_state; i++)
-	{
-		initial_probability[i] = 0.0;
-	}
+	//	//initial_probability[0] = 0.0;
+	//	sum = 0;
+	//	for (int i = 1; i < _numStates; i++)
+	//	{
+	//		int r = (rand() % 10000) + 1;
+	//		initial_probability[i] = r;
+	//		sum += r;
+	//	}
+	//	for (int i = 1; i < _numStates; i++)
+	//	{
+	//		initial_probability[i] /= sum;
+	//	}
+	//
+	//	for (int i = _numStates; i < _maxState; i++)
+	//	{
+	//		initial_probability[i] = 0.0;
+	//	}
 }
 /* HMM Constructor; create HMM object; takes
  STRING HMM File name
@@ -129,41 +131,41 @@ HMM::HMM(char * hmm)
 		params[i] = atoi(buf.c_str());
 		i++;
 	}
-	order = params[0];
-	num_states = params[1];
-	num_obs = params[2];
-	max_state = int(pow(num_states, order));
+	_order = params[0];
+	_numStates = params[1];
+	_numObs = params[2];
+	_maxState = int(pow(_numStates, _order));
 
-	transition = createMatrix(max_state, num_states);
-	observation = createMatrix(num_states, num_obs);
-	initial_probability = new double[max_state];
+	_pTransition = createMatrix(_maxState, _numStates);
+	_pObservation = createMatrix(_numStates, _numObs);
+	initial_probability = new double[_maxState];
 
-	condstate_dist = createMatrix(num_obs, num_states);
-	state_dist = new double[num_states];
+	condstate_dist = createMatrix(_numObs, _numStates);
+	_pState = new double[_numStates];
 
-	for (int state = 0; state < num_states; state++)
+	for (int state = 0; state < _numStates; state++)
 	{
-		for (int obs = 0; obs < num_obs; obs++)
+		for (int obs = 0; obs < _numObs; obs++)
 		{
-			HMMfile >> observation[state][obs];
+			HMMfile >> _pObservation[state][obs];
 		}
 	}
-	for (int i = 0; i < num_obs; i++)
+	for (int i = 0; i < _numObs; i++)
 	{
-		for (int j = 0; j < num_states; j++)
+		for (int j = 0; j < _numStates; j++)
 		{
 			HMMfile >> condstate_dist[i][j];
 		}
 	}
-	for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+	for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 	{
-		for (int state = 0; state < num_states; state++)
+		for (int state = 0; state < _numStates; state++)
 		{
-			HMMfile >> transition[state_sequence][state];
+			HMMfile >> _pTransition[state_sequence][state];
 		}
 	}
 
-	for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+	for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 	{
 		HMMfile >> initial_probability[state_sequence];
 
@@ -174,38 +176,40 @@ HMM::HMM(char * hmm)
 
 int HMM::sampleStartState()
 {
-	Distribution d(initial_probability, max_state);
+	Distribution d(_pTransition[0], _maxState);
 	return d.generate_sample();
 }
 int HMM::sampleState(int lastState)
 {
-	Distribution d(transition[lastState], num_states);
+	Distribution d(_pTransition[lastState], _numStates);
 	return d.generate_sample();
 }
 int HMM::sampleWord(int state)
 {
-	Distribution d(observation[state], num_obs);
+	Distribution d(_pObservation[state], _numObs);
 	return d.generate_sample();
 }
 
-double** HMM::getEmissionMatrix()
+double**
+HMM::getEmissionMatrix()
 {
-	return observation;
+	return _pObservation;
 }
 
-double** HMM::getTransitionMatrix()
+double**
+HMM::getTransitionMatrix()
 {
-	return transition;
+	return _pTransition;
 }
 
 int HMM::getNumObs()
 {
-	return num_obs;
+	return _numObs;
 }
 
 int HMM::getNumStates()
 {
-	return num_states;
+	return _numStates;
 }
 
 HMM::HMM(HMM &h)
@@ -218,18 +222,18 @@ HMM::HMM(HMM &h)
 HMM::~HMM()
 {
 
-	delete[] initial_probability;
-	freeMatrix(transition, max_state, num_states);
-	freeMatrix(observation, num_states, num_obs);
-	delete[] state_dist;
-	freeMatrix(condstate_dist, num_obs, num_states);
+	//delete[] initial_probability;
+	freeMatrix(_pTransition, _maxState, _numStates);
+	freeMatrix(_pObservation, _numStates, _numObs);
+	delete[] _pState;
+	freeMatrix(condstate_dist, _numObs, _numStates);
 
 }
 //void HMM::getSimilarWords(int word, vector<pair<int, double> > * similarWords) {
 //
-//	for (int i = 0; i < num_obs; i++) {
+//	for (int i = 0; i < _numObs; i++) {
 //		similarWords->push_back(pair<int, double> (i, klDivergence(
-//				condstate_dist[word], condstate_dist[i], num_states)));
+//				condstate_dist[word], condstate_dist[i], _numStates)));
 //	}
 //	sort(similarWords->begin(), similarWords->end(), sort_scorepairLESSTHAN);
 //
@@ -240,13 +244,12 @@ void HMM::computeForwardMatrix(vector<int> words, double** forward, int len)
 {
 
 	forward[0][0] = 0;
-	for (int state = 1; state < num_states; state++)
+	for (int state = 1; state < _numStates; state++)
 	{
-		forward[0][state] = initial_probability[state]
-				* observation[state][words[0]];
+		forward[0][state] = initial_probability[state] * _pObservation[state][words[0]];
 	}
 
-	for (int state = num_states; state < max_state; state++)
+	for (int state = _numStates; state < _maxState; state++)
 	{
 		forward[0][state] = 0;
 	}
@@ -254,18 +257,16 @@ void HMM::computeForwardMatrix(vector<int> words, double** forward, int len)
 	for (int i = 1; i < len; i++)
 	{
 		int obs = words[i];
-		for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+		for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 		{
-			int state = state_sequence % num_states;
+			int state = state_sequence % _numStates;
 			double sum = 0;
-			double o_prob = observation[state][obs];
-			for (int previous_state = 0; previous_state < num_states; previous_state++)
+			double o_prob = _pObservation[state][obs];
+			for (int previous_state = 0; previous_state < _numStates; previous_state++)
 			{
-				int conditional_state = previous_state * int(pow(num_states,
-						order - 1)) + state_sequence / num_states;
-				double t = transition[conditional_state][state];
-				sum += forward[i - 1][conditional_state]
-						* transition[conditional_state][state];
+				int conditional_state = previous_state * int(pow(_numStates, _order - 1)) + state_sequence / _numStates;
+				double t = _pTransition[conditional_state][state];
+				sum += forward[i - 1][conditional_state] * _pTransition[conditional_state][state];
 			}
 			forward[i][state_sequence] = sum * o_prob;
 		}
@@ -275,7 +276,7 @@ void HMM::computeForwardMatrix(vector<int> words, double** forward, int len)
 void HMM::computeBackwardMatrix(vector<int> words, double ** backward, int len)
 {
 
-	for (int state = 0; state < max_state; state++)
+	for (int state = 0; state < _maxState; state++)
 	{
 		backward[len - 1][state] = 1.0;
 	}
@@ -283,16 +284,14 @@ void HMM::computeBackwardMatrix(vector<int> words, double ** backward, int len)
 	for (int i = len - 2; i >= 0; i--)
 	{
 		int obs = words[i + 1];
-		for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+		for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 		{
 			double sum = 0;
-			for (int next_state = 0; next_state < num_states; next_state++)
+			for (int next_state = 0; next_state < _numStates; next_state++)
 			{
-				int next_sequence = (state_sequence % int(pow(num_states, order
-						- 1))) + next_state;
-				sum += backward[i + 1][next_sequence]
-						* transition[state_sequence][next_state]
-						* observation[next_state][obs];
+				int next_sequence = (state_sequence % int(pow(_numStates, _order - 1))) + next_state;
+				sum += backward[i + 1][next_sequence] * _pTransition[state_sequence][next_state]
+						* _pObservation[next_state][obs];
 			}
 			backward[i][state_sequence] = sum;
 		}
@@ -301,20 +300,19 @@ void HMM::computeBackwardMatrix(vector<int> words, double ** backward, int len)
 /*======================================================================+*/
 
 /*==============SCALED FORWARD AND BACKWARD ALGORITHMS===================*/
-void HMM::computeForwardMatrixScaled(vector<int> words, double** forward,
-		double * scaleArray, int len)
+void HMM::computeForwardMatrixScaled(vector<int> words, double** forward, double * scaleArray, int len)
 {
 
 	double scale = 0;
 	forward[0][0] = 0;
-	for (int state = 1; state < num_states; state++)
+	for (int state = 1; state < _numStates; state++)
 	{
-		double p = initial_probability[state] * observation[state][words[0]];
+		double p = initial_probability[state] * _pObservation[state][words[0]];
 		forward[0][state] = p;
 		scale += p;
 	}
 
-	for (int state = 1; state < num_states; state++)
+	for (int state = 1; state < _numStates; state++)
 	{
 		forward[0][state] /= scale;
 	}
@@ -324,23 +322,21 @@ void HMM::computeForwardMatrixScaled(vector<int> words, double** forward,
 	{
 		int obs = words[i];
 		scale = 0;
-		for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+		for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 		{
-			int state = state_sequence % num_states;
+			int state = state_sequence % _numStates;
 			double sum = 0;
-			double o_prob = observation[state][obs];
-			for (int previous_state = 0; previous_state < num_states; previous_state++)
+			double o_prob = _pObservation[state][obs];
+			for (int previous_state = 0; previous_state < _numStates; previous_state++)
 			{
-				int conditional_state = previous_state * int(pow(num_states,
-						order - 1)) + state_sequence / num_states;
-				sum += forward[i - 1][conditional_state]
-						* transition[conditional_state][state];
+				int conditional_state = previous_state * int(pow(_numStates, _order - 1)) + state_sequence / _numStates;
+				sum += forward[i - 1][conditional_state] * _pTransition[conditional_state][state];
 			}
-			double p = sum * observation[state][words[i]];
+			double p = sum * _pObservation[state][words[i]];
 			forward[i][state_sequence] = p;
 			scale += p;
 		}
-		for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+		for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 		{
 			forward[i][state_sequence] /= scale;
 		}
@@ -348,26 +344,25 @@ void HMM::computeForwardMatrixScaled(vector<int> words, double** forward,
 	}
 }
 
-void HMM::computeSubForwardMatrixScaled(vector<int> words, double** forward,
-		double * scaleArray, int len, int k)
+void HMM::computeSubForwardMatrixScaled(vector<int> words, double** forward, double * scaleArray, int len, int k)
 {
 
 	double scale = 0;
 	forward[0][0] = 0;
-	for (int state = 1; state < num_states; state++)
+	for (int state = 1; state < _numStates; state++)
 	{
 		double o_prob;
 		if (k == 0)
 			o_prob = 1;
 		else
-			o_prob = observation[state][words[0]];
+			o_prob = _pObservation[state][words[0]];
 
-		double p = (1.0 / num_states) * o_prob;
+		double p = (1.0 / _numStates) * o_prob;
 		forward[0][state] = p;
 		scale += p;
 	}
 
-	for (int state = 1; state < num_states; state++)
+	for (int state = 1; state < _numStates; state++)
 	{
 		forward[0][state] /= scale;
 	}
@@ -377,28 +372,26 @@ void HMM::computeSubForwardMatrixScaled(vector<int> words, double** forward,
 	{
 		int obs = words[i];
 		scale = 0;
-		for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+		for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 		{
-			int state = state_sequence % num_states;
+			int state = state_sequence % _numStates;
 			double sum = 0;
-			double o_prob = observation[state][obs];
+			double o_prob = _pObservation[state][obs];
 			if (i == k)
 			{
 				o_prob = 1;
 
 			}
-			for (int previous_state = 0; previous_state < num_states; previous_state++)
+			for (int previous_state = 0; previous_state < _numStates; previous_state++)
 			{
-				int conditional_state = previous_state * int(pow(num_states,
-						order - 1)) + state_sequence / num_states;
-				sum += forward[i - 1][conditional_state]
-						* transition[conditional_state][state];
+				int conditional_state = previous_state * int(pow(_numStates, _order - 1)) + state_sequence / _numStates;
+				sum += forward[i - 1][conditional_state] * _pTransition[conditional_state][state];
 			}
 			double p = sum * o_prob;
 			forward[i][state_sequence] = p;
 			scale += p;
 		}
-		for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+		for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 		{
 			forward[i][state_sequence] /= scale;
 		}
@@ -406,27 +399,24 @@ void HMM::computeSubForwardMatrixScaled(vector<int> words, double** forward,
 	}
 }
 
-void HMM::computeBackwardMatrixScaled(vector<int> words, double ** backward,
-		double * scaleArray, int len)
+void HMM::computeBackwardMatrixScaled(vector<int> words, double ** backward, double * scaleArray, int len)
 {
 
-	for (int state = 0; state < max_state; state++)
+	for (int state = 0; state < _maxState; state++)
 	{
 		backward[len - 1][state] = 1.0;
 	}
 	for (int i = len - 2; i >= 0; i--)
 	{
 		int obs = words[i + 1];
-		for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+		for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 		{
 			double sum = 0;
-			for (int next_state = 0; next_state < num_states; next_state++)
+			for (int next_state = 0; next_state < _numStates; next_state++)
 			{
-				int next_sequence = num_states * (state_sequence % int(pow(
-						num_states, order - 1))) + next_state;
-				sum += backward[i + 1][next_sequence]
-						* transition[state_sequence][next_state]
-						* observation[next_state][obs];
+				int next_sequence = _numStates * (state_sequence % int(pow(_numStates, _order - 1))) + next_state;
+				sum += backward[i + 1][next_sequence] * _pTransition[state_sequence][next_state]
+						* _pObservation[next_state][obs];
 			}
 			backward[i][state_sequence] = sum / scaleArray[i + 1];
 		}
@@ -437,7 +427,7 @@ double HMM::forwardAlgorithmScaled(vector<int> words)
 {
 
 	int len = words.size();
-	double ** forward = createMatrix(len, max_state);
+	double ** forward = createMatrix(len, _maxState);
 	double * scaleArray = new double[len];
 	computeForwardMatrixScaled(words, forward, scaleArray, len);
 	double p = 0;
@@ -446,7 +436,7 @@ double HMM::forwardAlgorithmScaled(vector<int> words)
 		p += log2(scaleArray[i]);
 	}
 
-	freeMatrix(forward, len, max_state);
+	freeMatrix(forward, len, _maxState);
 	delete[] scaleArray;
 	return p;
 }
@@ -455,7 +445,7 @@ double HMM::subForwardAlgorithmScaled(vector<int> words, int k)
 {
 
 	int len = words.size();
-	double ** forward = createMatrix(len, max_state);
+	double ** forward = createMatrix(len, _maxState);
 	double * scaleArray = new double[len];
 	computeSubForwardMatrixScaled(words, forward, scaleArray, len, k);
 	double p = 0;
@@ -464,7 +454,7 @@ double HMM::subForwardAlgorithmScaled(vector<int> words, int k)
 		p += log2(scaleArray[i]);
 	}
 
-	freeMatrix(forward, len, max_state);
+	freeMatrix(forward, len, _maxState);
 	delete[] scaleArray;
 	return p;
 }
@@ -475,15 +465,15 @@ double HMM::forwardAlgorithm(vector<int> words)
 {
 
 	int len = words.size();
-	double ** forward = createMatrix(len, max_state);
+	double ** forward = createMatrix(len, _maxState);
 	computeForwardMatrix(words, forward, len);
 	double p = 0;
-	for (int i = 0; i < max_state; i++)
+	for (int i = 0; i < _maxState; i++)
 	{
 		p += forward[len - 1][i];
 	}
 
-	freeMatrix(forward, len, max_state);
+	freeMatrix(forward, len, _maxState);
 
 	return p;
 }
@@ -491,16 +481,16 @@ double HMM::forwardAlgorithm(vector<int> words)
 double HMM::backwardAlgorithm(vector<int> words)
 {
 	int len = words.size();
-	double ** backward = createMatrix(len, max_state);
+	double ** backward = createMatrix(len, _maxState);
 	computeBackwardMatrix(words, backward, len);
 
 	double p = 0;
-	for (int i = 0; i < max_state; i++)
+	for (int i = 0; i < _maxState; i++)
 	{
-		p += backward[0][i] * observation[i][words[0]] * initial_probability[i];
+		p += backward[0][i] * _pObservation[i][words[0]] * initial_probability[i];
 	}
 
-	freeMatrix(backward, len, max_state);
+	freeMatrix(backward, len, _maxState);
 
 	return p;
 }
@@ -511,28 +501,27 @@ double HMM::forward(int* words)
 
 	int len = sizeof(words) / sizeof(int);
 	double *a;
-	a = new double[max_state];
+	a = new double[_maxState];
 
-	for (int state = 0; state < max_state; state++)
+	for (int state = 0; state < _maxState; state++)
 	{
-		a[state] = initial_probability[state] * observation[state][words[0]];
+		a[state] = initial_probability[state] * _pObservation[state][words[0]];
 	}
 
 	double *current;
-	current = new double[max_state];
+	current = new double[_maxState];
 	for (int i = 1; i < len; i++)
 	{
 		int obs = words[i];
-		for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+		for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 		{
-			int state = state_sequence % num_states;
+			int state = state_sequence % _numStates;
 			double sum = 0;
-			double o_prob = observation[state][obs];
-			for (int previous_state = 0; previous_state < num_states; previous_state++)
+			double o_prob = _pObservation[state][obs];
+			for (int previous_state = 0; previous_state < _numStates; previous_state++)
 			{
-				int conditional_state = previous_state * int(pow(num_states,
-						order - 1)) + state_sequence / num_states;
-				double trans = transition[conditional_state][state];
+				int conditional_state = previous_state * int(pow(_numStates, _order - 1)) + state_sequence / _numStates;
+				double trans = _pTransition[conditional_state][state];
 				sum += a[conditional_state] * trans;
 			}
 			current[state_sequence] = sum * o_prob;
@@ -540,7 +529,7 @@ double HMM::forward(int* words)
 		a = current;
 	}
 	double sum = 0;
-	for (int i = 0; i < max_state; i++)
+	for (int i = 0; i < _maxState; i++)
 	{
 		sum += a[i];
 	}
@@ -557,29 +546,28 @@ double HMM::backward(int* words)
 	;
 
 	double *b;
-	b = new double[max_state];
+	b = new double[_maxState];
 
-	for (int state = 0; state < max_state; state++)
+	for (int state = 0; state < _maxState; state++)
 	{
 		b[state] = 1.0;
 	}
 	double *current;
-	current = new double[max_state];
+	current = new double[_maxState];
 	for (int i = len - 2; i >= 0; i--)
 	{
 		int obs = words[i + 1];
 
-		for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+		for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 		{
-			int state = state_sequence % order;
+			int state = state_sequence % _order;
 			double sum = 0;
-			for (int next_state = 0; next_state < num_states; next_state++)
+			for (int next_state = 0; next_state < _numStates; next_state++)
 			{
-				double o_prob = observation[next_state][obs];
-				int next_sequence = num_states * (state_sequence % int(pow(
-						num_states, order - 1))) + next_state;
-				//int conditional_state = previous_state*msb + state_sequence/order;
-				double trans = transition[state_sequence][next_state];
+				double o_prob = _pObservation[next_state][obs];
+				int next_sequence = _numStates * (state_sequence % int(pow(_numStates, _order - 1))) + next_state;
+				//int conditional_state = previous_state*msb + state_sequence/_order;
+				double trans = _pTransition[state_sequence][next_state];
 
 				sum += b[next_sequence] * trans * o_prob;
 			}
@@ -588,9 +576,9 @@ double HMM::backward(int* words)
 		b = current;
 	}
 	double sum = 0;
-	for (int i = 0; i < max_state; i++)
+	for (int i = 0; i < _maxState; i++)
 	{
-		sum += b[i] * observation[i][words[0]] * initial_probability[i];
+		sum += b[i] * _pObservation[i][words[0]] * initial_probability[i];
 	}
 	delete[] b;
 	delete[] current;
@@ -610,23 +598,23 @@ double HMM::backward(int* words)
 
 
  double *a;
- a = new double[max_state];
+ a = new double[_maxState];
 
- for (int state = 0; state < num_states; state++) {
- a[state] = initial_probability[state]*observation[state][words[0]];
+ for (int state = 0; state < _numStates; state++) {
+ a[state] = initial_probability[state]*_pObservation[state][words[0]];
  }
 
  double *current;
- current = new double[max_state];
+ current = new double[_maxState];
  for (int i = 1; i < len; i++){
  int obs = words[i];
- for (int state_sequence = 0; state_sequence < max_state; state_sequence++){
- int state = state_sequence % num_states;
+ for (int state_sequence = 0; state_sequence < _maxState; state_sequence++){
+ int state = state_sequence % _numStates;
  double sum = 0;
- double o_prob = observation[state][obs];
- for (int previous_state = 0; previous_state < num_states; previous_state++) {
- int conditional_state = previous_state*int(pow(num_states, order-1)) + state_sequence/order;
- double trans = transition[conditional_state][state];
+ double o_prob = _pObservation[state][obs];
+ for (int previous_state = 0; previous_state < _numStates; previous_state++) {
+ int conditional_state = previous_state*int(pow(_numStates, _order-1)) + state_sequence/_order;
+ double trans = _pTransition[conditional_state][state];
  sum += a[conditional_state] * trans;
  }
  current[state_sequence] = sum*o_prob;
@@ -635,7 +623,7 @@ double HMM::backward(int* words)
  }
  double max = 0;
  double sum = 0;
- for (int i =0; i<max_state; i++){
+ for (int i =0; i<_maxState; i++){
  sum += a[i];
  }
  delete [] a;
@@ -661,16 +649,16 @@ void HMM::trainFromFile(char* inputFile)
 	double *sequence_count;
 	double *init_count;
 	double *obs_count;
-	emit_count = createMatrix(num_states, num_obs);
-	trans_count = createMatrix(max_state, num_states);
-	state_count = new double[num_states];
-	zeroArray(state_count, num_states);
-	obs_count = new double[num_obs];
-	zeroArray(obs_count, num_obs);
-	sequence_count = new double[max_state];
-	zeroArray(sequence_count, max_state);
-	init_count = new double[max_state];
-	zeroArray(init_count, max_state);
+	emit_count = createMatrix(_numStates, _numObs);
+	trans_count = createMatrix(_maxState, _numStates);
+	state_count = new double[_numStates];
+	zeroArray(state_count, _numStates);
+	obs_count = new double[_numObs];
+	zeroArray(obs_count, _numObs);
+	sequence_count = new double[_maxState];
+	zeroArray(sequence_count, _maxState);
+	init_count = new double[_maxState];
+	zeroArray(init_count, _maxState);
 
 	ifstream trainFile(inputFile);
 	string line;
@@ -690,82 +678,76 @@ void HMM::trainFromFile(char* inputFile)
 		//COMPUTE FORWARD PROBABILITY
 		double **forward;
 		double * scaleArray = new double[len];
-		forward = createMatrix(len, max_state);
+		forward = createMatrix(len, _maxState);
 		//double forward_prob = forwardAlgorithmScaled(words);
 		//computeForwardMatrix(words, forward,  len);
-		//printMatrix(forward, len, max_state);
+		//printMatrix(forward, len, _maxState);
 		computeForwardMatrixScaled(words, forward, scaleArray, len);
-		//printMatrix(forward, len, max_state);
+		//printMatrix(forward, len, _maxState);
 
 		//COMPUTE_BACKWARD PROBABILITY
 		double **backward;
-		backward = createMatrix(len, max_state);
+		backward = createMatrix(len, _maxState);
 		//computeBackwardMatrix(words, backward,  len);
-		//printMatrix(backward, len, max_state);		
+		//printMatrix(backward, len, _maxState);
 		computeBackwardMatrixScaled(words, backward, scaleArray, len);
-		//printMatrix(backward, len, max_state);
+		//printMatrix(backward, len, _maxState);
 
 		//BAUM WELCH COUNTS
 		for (int i = 0; i < len - 1; i++)
 		{
 			int obs = words[i];
 			int next_obs = words[i + 1];
-			for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+			for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 			{
-				int state = state_sequence % num_states;
+				int state = state_sequence % _numStates;
 				//cout << "for state" << state<<" "<<forward[i][state_sequence]<<"*"<<backward[i][state_sequence]<<endl;
-				double gamma = (forward[i][state_sequence]
-						* backward[i][state_sequence]);
-				if (gamma != gamma)
-				{
-					cout << "gammma problem" << endl;
-					printMatrix(forward, len, max_state);
-					printMatrix(backward, len, max_state);
-					printArray(scaleArray, len);
-
-					return;
-				}
+				double gamma = (forward[i][state_sequence] * backward[i][state_sequence]);
+				//				if (gamma != gamma)
+				//				{
+				//					cout << "gammma problem" << endl;
+				//					printMatrix(forward, len, _maxState);
+				//					printMatrix(backward, len, _maxState);
+				//					printArray(scaleArray, len);
+				//
+				//					return;
+				//				}
 				if (i == 0)
 				{
-					init_count[state_sequence] += gamma;
+					_pTransition[0][state_sequence] += gamma;
 				}
 				emit_count[state][obs] += gamma;
 				obs_count[obs] += gamma;
 				state_count[state] += gamma;
 				sequence_count[state_sequence] += gamma;
-				for (int next_state = 0; next_state < num_states; next_state++)
+				for (int next_state = 0; next_state < _numStates; next_state++)
 				{
-					int next_sequence = num_states * (state_sequence % int(pow(
-							num_states, order - 1))) + next_state;
-					double eta = (forward[i][state_sequence]
-							* transition[state_sequence][next_state]
-							* observation[next_state][next_obs] * backward[i
-							+ 1][next_sequence]) / scaleArray[i + 1];
+					int next_sequence = _numStates * (state_sequence % int(pow(_numStates, _order - 1))) + next_state;
+					double eta = (forward[i][state_sequence] * _pTransition[state_sequence][next_state]
+							* _pObservation[next_state][next_obs] * backward[i + 1][next_sequence]) / scaleArray[i + 1];
 					trans_count[state_sequence][next_state] += eta;
 				}
 			}
 		}
-		for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+		for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 		{
 			int obs = words[len - 1];
-			int state = state_sequence % num_states;
-			double gamma = (forward[len - 1][state_sequence]
-					* backward[len - 1][state_sequence]);
+			int state = state_sequence % _numStates;
+			double gamma = (forward[len - 1][state_sequence] * backward[len - 1][state_sequence]);
 			emit_count[state][obs] += gamma;
 			obs_count[obs] += gamma;
 			state_count[state] += gamma;
 		}
 		delete[] scaleArray;
-		freeMatrix(forward, len, max_state);
-		freeMatrix(backward, len, max_state);
+		freeMatrix(forward, len, _maxState);
+		freeMatrix(backward, len, _maxState);
 
 	}//end for every sentence
 	trainFile.close();
-	updateHMM(emit_count, trans_count, state_count, sequence_count, init_count,
-			obs_count);
+	updateHMM(emit_count, trans_count, state_count, sequence_count, init_count, obs_count);
 
-	freeMatrix(trans_count, max_state, num_states);
-	freeMatrix(emit_count, num_states, num_obs);
+	freeMatrix(trans_count, _maxState, _numStates);
+	freeMatrix(emit_count, _numStates, _numObs);
 	delete[] state_count;
 	delete[] obs_count;
 	delete[] sequence_count;
@@ -773,15 +755,15 @@ void HMM::trainFromFile(char* inputFile)
 }
 
 /* HMM EM Training; 
- STRING inputFile
+ VECTOR<STRING> files
  inputFile is a file containing a list of training files
  
  */
 
-void HMM::trainParallel(vector<string> files_list)
+void HMM::trainParallel(vector<string> filesList_)
 {
 
-	int count = files_list.size();
+	int count = filesList_.size();
 	int rank = MPI::COMM_WORLD.Get_rank();
 	int size = MPI::COMM_WORLD.Get_size();
 	const int root = 0;
@@ -795,16 +777,16 @@ void HMM::trainParallel(vector<string> files_list)
 	double *sequence_count;
 	double *init_count;
 	double *obs_count;
-	emit_count = createMatrix(num_states, num_obs);
-	trans_count = createMatrix(max_state, num_states);
-	state_count = new double[num_states];
-	zeroArray(state_count, num_states);
-	obs_count = new double[num_obs];
-	zeroArray(obs_count, num_obs);
-	sequence_count = new double[max_state];
-	zeroArray(sequence_count, max_state);
-	init_count = new double[max_state];
-	zeroArray(init_count, max_state);
+	emit_count = createMatrix(_numStates, _numObs);
+	trans_count = createMatrix(_maxState, _numStates);
+	state_count = new double[_numStates];
+	zeroArray(state_count, _numStates);
+	obs_count = new double[_numObs];
+	zeroArray(obs_count, _numObs);
+	sequence_count = new double[_maxState];
+	zeroArray(sequence_count, _maxState);
+	init_count = new double[_maxState];
+	zeroArray(init_count, _maxState);
 
 	double **temit_count;
 	double **ttrans_count;
@@ -813,19 +795,19 @@ void HMM::trainParallel(vector<string> files_list)
 	double *tinit_count;
 	double *tobs_count;
 
-	temit_count = createMatrix(num_states, num_obs);
-	ttrans_count = createMatrix(max_state, num_states);
-	tstate_count = new double[num_states];
-	tobs_count = new double[num_obs];
-	zeroArray(tstate_count, num_states);
-	tsequence_count = new double[max_state];
-	zeroArray(tsequence_count, max_state);
-	tinit_count = new double[max_state];
-	zeroArray(tinit_count, max_state);
+	temit_count = createMatrix(_numStates, _numObs);
+	ttrans_count = createMatrix(_maxState, _numStates);
+	tstate_count = new double[_numStates];
+	tobs_count = new double[_numObs];
+	zeroArray(tstate_count, _numStates);
+	tsequence_count = new double[_maxState];
+	zeroArray(tsequence_count, _maxState);
+	tinit_count = new double[_maxState];
+	zeroArray(tinit_count, _maxState);
 
 	for (int i = start; i < end; i++)
 	{
-		const char* inputFile = files_list[i].c_str();
+		const char* inputFile = filesList_[i].c_str();
 		//		cout << "opening file "<<files_list[i].c_str()<< " On Process " << rank<<endl;
 		ifstream trainFile(inputFile);
 		string line;
@@ -845,26 +827,25 @@ void HMM::trainParallel(vector<string> files_list)
 			//COMPUTE FORWARD PROBABILITY
 			double **forward;
 			double * scaleArray = new double[len];
-			forward = createMatrix(len, max_state);
+			forward = createMatrix(len, _maxState);
 			computeForwardMatrixScaled(words, forward, scaleArray, len);
-			//printMatrix(forward, len, max_state);
+			//printMatrix(forward, len, _maxState);
 
 			//COMPUTE_BACKWARD PROBABILITY
 			double **backward;
-			backward = createMatrix(len, max_state);
+			backward = createMatrix(len, _maxState);
 			computeBackwardMatrixScaled(words, backward, scaleArray, len);
-			//printMatrix(backward, len, max_state);
+			//printMatrix(backward, len, _maxState);
 
 			//BAUM WELCH COUNTS
 			for (int i = 0; i < len - 1; i++)
 			{
 				int obs = words[i];
 				int next_obs = words[i + 1];
-				for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+				for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 				{
-					int state = state_sequence % num_states;
-					double gamma = (forward[i][state_sequence]
-							* backward[i][state_sequence]);
+					int state = state_sequence % _numStates;
+					double gamma = (forward[i][state_sequence] * backward[i][state_sequence]);
 					if (i == 0)
 					{
 						init_count[state_sequence] += gamma;
@@ -873,33 +854,30 @@ void HMM::trainParallel(vector<string> files_list)
 					obs_count[obs] += gamma;
 					state_count[state] += gamma;
 					sequence_count[state_sequence] += gamma;
-					for (int next_state = 0; next_state < num_states; next_state++)
+					for (int next_state = 0; next_state < _numStates; next_state++)
 					{
-						int next_sequence = num_states * (state_sequence % int(
-								pow(num_states, order - 1))) + next_state;
-						double eta = (forward[i][state_sequence]
-								* transition[state_sequence][next_state]
-								* observation[next_state][next_obs]
-								* backward[i + 1][next_sequence])
-								/ scaleArray[i + 1];
+						int next_sequence = _numStates * (state_sequence % int(pow(_numStates, _order - 1)))
+								+ next_state;
+						double eta = (forward[i][state_sequence] * _pTransition[state_sequence][next_state]
+								* _pObservation[next_state][next_obs] * backward[i + 1][next_sequence]) / scaleArray[i
+								+ 1];
 						trans_count[state_sequence][next_state] += eta;
 					}
 				}
 			}
-			for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+			for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 			{
 				int obs = words[len - 1];
-				int state = state_sequence % num_states;
-				double gamma = (forward[len - 1][state_sequence] * backward[len
-						- 1][state_sequence]);
+				int state = state_sequence % _numStates;
+				double gamma = (forward[len - 1][state_sequence] * backward[len - 1][state_sequence]);
 				emit_count[state][obs] += gamma;
 				obs_count[obs] += gamma;
 				state_count[state] += gamma;
 				//	sequence_count[state_sequence] += gamma;
 			}
 			delete[] scaleArray;
-			freeMatrix(forward, len, max_state);
-			freeMatrix(backward, len, max_state);
+			freeMatrix(forward, len, _maxState);
+			freeMatrix(backward, len, _maxState);
 		}//end for every sentence
 
 		trainFile.close();
@@ -908,53 +886,46 @@ void HMM::trainParallel(vector<string> files_list)
 
 
 	//Collect parameters on root
-	for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+	for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 	{
-		MPI_Reduce(trans_count[state_sequence], ttrans_count[state_sequence],
-				num_states, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD);
-	}
-	MPI_Reduce(sequence_count, tsequence_count, max_state, MPI_DOUBLE, MPI_SUM,
-			root, MPI_COMM_WORLD);
-	MPI_Reduce(init_count, tinit_count, max_state, MPI_DOUBLE, MPI_SUM, root,
-			MPI_COMM_WORLD);
-	for (int state = 0; state < num_states; state++)
-	{
-		MPI_Reduce(emit_count[state], temit_count[state], num_obs, MPI_DOUBLE,
-				MPI_SUM, root, MPI_COMM_WORLD);
-	}
-	MPI_Reduce(state_count, tstate_count, num_states, MPI_DOUBLE, MPI_SUM,
-			root, MPI_COMM_WORLD);
-	MPI_Reduce(obs_count, tobs_count, num_obs, MPI_DOUBLE, MPI_SUM, root,
-			MPI_COMM_WORLD);
-
-	//Send updated parameters too all children
-	for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
-	{
-		MPI_Bcast(ttrans_count[state_sequence], num_states, MPI_DOUBLE, root,
+		MPI_Reduce(trans_count[state_sequence], ttrans_count[state_sequence], _numStates, MPI_DOUBLE, MPI_SUM, root,
 				MPI_COMM_WORLD);
 	}
-	MPI_Bcast(tsequence_count, max_state, MPI_DOUBLE, root, MPI_COMM_WORLD);
-	MPI_Bcast(tinit_count, max_state, MPI_DOUBLE, root, MPI_COMM_WORLD);
-	for (int state = 0; state < num_states; state++)
+	MPI_Reduce(sequence_count, tsequence_count, _maxState, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD);
+	MPI_Reduce(init_count, tinit_count, _maxState, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD);
+	for (int state = 0; state < _numStates; state++)
 	{
-		MPI_Bcast(temit_count[state], num_obs, MPI_DOUBLE, root, MPI_COMM_WORLD);
+		MPI_Reduce(emit_count[state], temit_count[state], _numObs, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD);
 	}
-	MPI_Bcast(tstate_count, num_states, MPI_DOUBLE, root, MPI_COMM_WORLD);
-	MPI_Bcast(tobs_count, num_obs, MPI_DOUBLE, root, MPI_COMM_WORLD);
+	MPI_Reduce(state_count, tstate_count, _numStates, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD);
+	MPI_Reduce(obs_count, tobs_count, _numObs, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD);
+
+	//Send updated parameters too all children
+	for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
+	{
+		MPI_Bcast(ttrans_count[state_sequence], _numStates, MPI_DOUBLE, root, MPI_COMM_WORLD);
+	}
+	MPI_Bcast(tsequence_count, _maxState, MPI_DOUBLE, root, MPI_COMM_WORLD);
+	MPI_Bcast(tinit_count, _maxState, MPI_DOUBLE, root, MPI_COMM_WORLD);
+	for (int state = 0; state < _numStates; state++)
+	{
+		MPI_Bcast(temit_count[state], _numObs, MPI_DOUBLE, root, MPI_COMM_WORLD);
+	}
+	MPI_Bcast(tstate_count, _numStates, MPI_DOUBLE, root, MPI_COMM_WORLD);
+	MPI_Bcast(tobs_count, _numObs, MPI_DOUBLE, root, MPI_COMM_WORLD);
 
 	//cout << "Update Step" << endl;
-	updateHMM(temit_count, ttrans_count, tstate_count, tsequence_count,
-			tinit_count, tobs_count);
+	updateHMM(temit_count, ttrans_count, tstate_count, tsequence_count, tinit_count, tobs_count);
 
-	freeMatrix(trans_count, max_state, num_states);
-	freeMatrix(emit_count, num_states, num_obs);
+	freeMatrix(trans_count, _maxState, _numStates);
+	freeMatrix(emit_count, _numStates, _numObs);
 	delete[] state_count;
 	delete[] sequence_count;
 	delete[] init_count;
 	delete[] obs_count;
 
-	freeMatrix(temit_count, num_states, num_obs);
-	freeMatrix(ttrans_count, max_state, num_states);
+	freeMatrix(temit_count, _numStates, _numObs);
+	freeMatrix(ttrans_count, _maxState, _numStates);
 	delete[] tstate_count;
 	delete[] tsequence_count;
 	delete[] tinit_count;
@@ -962,56 +933,52 @@ void HMM::trainParallel(vector<string> files_list)
 
 }
 
-void HMM::updateHMM(double** emit_count, double** trans_count,
-		double* state_count, double* sequence_count, double* initial_count,
-		double* obs_count)
+void HMM::updateHMM(double** emit_count, double** trans_count, double* state_count, double* sequence_count,
+		double* initial_count, double* obs_count)
 {
 
 	double state_total = 0;
-	for (int state = 1; state < num_states; state++)
+	for (int state = 1; state < _numStates; state++)
 	{
-		double smooth = 1 / ((num_states - 1) * num_obs);
-		for (int obs = 0; obs < num_obs; obs++)
+		double smooth = 1 / ((_numStates - 1) * _numObs);
+		for (int obs = 0; obs < _numObs; obs++)
 		{
-			observation[state][obs] = ((emit_count[state][obs]) + smooth)
-					/ (state_count[state] + smooth * num_obs);
-			condstate_dist[obs][state] = (emit_count[state][obs] + smooth)
-					/ (obs_count[obs] + smooth * (num_states - 1));
+			_pObservation[state][obs] = ((emit_count[state][obs]) + smooth) / (state_count[state] + smooth * _numObs);
+			condstate_dist[obs][state] = (emit_count[state][obs] + smooth) / (obs_count[obs] + smooth
+					* (_numStates - 1));
 			state_total += state_count[state];
 
 		}
 	}
-	for (int state = 0; state < num_states; state++)
+	for (int state = 0; state < _numStates; state++)
 	{
-		state_dist[state] = state_count[state] / state_total;
+		_pState[state] = state_count[state] / state_total;
 	}
 	double totalInit = 0;
-	for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+	for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 	{
 		if (sequence_count[state_sequence] != 0)
 		{
-			double smooth = 1 / (max_state * num_states - 1);
-			transition[state_sequence][0] = 0;
-			for (int state = 1; state < num_states; state++)
+			double smooth = 1 / (_maxState * _numStates - 1);
+			_pTransition[state_sequence][0] = 0;
+			for (int state = 1; state < _numStates; state++)
 			{
-				transition[state_sequence][state]
-						= (trans_count[state_sequence][state] + smooth)
-								/ (sequence_count[state_sequence] + smooth
-										* (num_states - 1));
+				_pTransition[state_sequence][state] = (trans_count[state_sequence][state] + smooth)
+						/ (sequence_count[state_sequence] + smooth * (_numStates - 1));
 			}
 		}
 		else
 		{
-			for (int state = 0; state < num_states; state++)
+			for (int state = 0; state < _numStates; state++)
 			{
-				transition[state_sequence][state] = 0;
+				_pTransition[state_sequence][state] = 0;
 			}
 		}
 		initial_probability[state_sequence] = initial_count[state_sequence];
 		totalInit += initial_count[state_sequence];
 	}
 
-	for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+	for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 	{
 		initial_probability[state_sequence] /= totalInit;
 	}
@@ -1028,16 +995,16 @@ void HMM::trainGibbsFromFile(char* inputFile)
 	double *init_count;
 	double *obs_count;
 
-	emit_count = createMatrix(num_states, num_obs);
-	trans_count = createMatrix(max_state, num_states);
-	state_count = new double[num_states];
-	zeroArray(state_count, num_states);
-	obs_count = new double[num_obs];
-	zeroArray(obs_count, num_obs);
-	sequence_count = new double[max_state];
-	zeroArray(sequence_count, max_state);
-	init_count = new double[max_state];
-	zeroArray(init_count, max_state);
+	emit_count = createMatrix(_numStates, _numObs);
+	trans_count = createMatrix(_maxState, _numStates);
+	state_count = new double[_numStates];
+	zeroArray(state_count, _numStates);
+	obs_count = new double[_numObs];
+	zeroArray(obs_count, _numObs);
+	sequence_count = new double[_maxState];
+	zeroArray(sequence_count, _maxState);
+	init_count = new double[_maxState];
+	zeroArray(init_count, _maxState);
 
 	ifstream trainFile(inputFile);
 	string line;
@@ -1058,15 +1025,14 @@ void HMM::trainGibbsFromFile(char* inputFile)
 		stateArray = new int[len];
 		for (int i = 0; i < len; i++)
 		{
-			int origState = (rand() % (num_states - 1)) + 1;
+			int origState = (rand() % (_numStates - 1)) + 1;
 			int obs = words[i];
 			int prev_sequence = 0;
 			int r = 0;
 			stateArray[i] = origState;
-			while ((r < order) && (i - 1 - r) >= 0)
+			while ((r < _order) && (i - 1 - r) >= 0)
 			{
-				prev_sequence += stateArray[(i - 1) - r] * int(pow(num_states,
-						r));
+				prev_sequence += stateArray[(i - 1) - r] * int(pow(_numStates, r));
 				r++;
 			}
 			obs_count[obs]++;
@@ -1089,35 +1055,30 @@ void HMM::trainGibbsFromFile(char* inputFile)
 			int prev_sequence = 0;
 			int r = 0;
 			//	cout << "Compute prev_seq" << endl;
-			while ((r < order) && (k - 1 - r) >= 0)
+			while ((r < _order) && (k - 1 - r) >= 0)
 			{
-				prev_sequence += stateArray[(k - 1) - r] * int(pow(num_states,
-						r));
+				prev_sequence += stateArray[(k - 1) - r] * int(pow(_numStates, r));
 				r++;
 			}
 			//	cout << "Done Compute prev_seq" << endl;
 			int origState = stateArray[k];
 			int nextState = stateArray[k + 1];
-			int next_sequence = num_states * (prev_sequence % int(pow(
-					num_states, order - 1))) + origState;
-			double *dist = new double[num_states];
+			int next_sequence = _numStates * (prev_sequence % int(pow(_numStates, _order - 1))) + origState;
+			double *dist = new double[_numStates];
 			double totalp = 0;
-			for (int state = 0; state < num_states; state++)
+			for (int state = 0; state < _numStates; state++)
 			{
-				int state_sequence = num_states * (prev_sequence % int(pow(
-						num_states, order - 1))) + state;
+				int state_sequence = _numStates * (prev_sequence % int(pow(_numStates, _order - 1))) + state;
 				if (prev_sequence == 0)
-					dist[state] = observation[state][obs]
-							* initial_probability[state]
-							* transition[state_sequence][nextState];
+					dist[state] = _pObservation[state][obs] * initial_probability[state]
+							* _pTransition[state_sequence][nextState];
 				else
-					dist[state] = observation[state][obs]
-							* transition[prev_sequence][state]
-							* transition[state_sequence][nextState];
+					dist[state] = _pObservation[state][obs] * _pTransition[prev_sequence][state]
+							* _pTransition[state_sequence][nextState];
 				totalp += dist[state];
 			}
-			renormalize(dist, num_states);
-			Distribution d(dist, num_states);
+			renormalize(dist, _numStates);
+			Distribution d(dist, _numStates);
 			int sample = d.generate_sample();
 			delete[] dist;
 
@@ -1137,8 +1098,7 @@ void HMM::trainGibbsFromFile(char* inputFile)
 			sequence_count[next_sequence]--;
 			emit_count[origState][obs]--;
 			stateArray[k] = sample;
-			next_sequence = num_states * (prev_sequence % int(pow(num_states,
-					order - 1))) + sample;
+			next_sequence = _numStates * (prev_sequence % int(pow(_numStates, _order - 1))) + sample;
 			state_count[sample]++;
 			trans_count[next_sequence][nextState]++;
 			sequence_count[next_sequence]++;
@@ -1149,11 +1109,10 @@ void HMM::trainGibbsFromFile(char* inputFile)
 		}
 	}//end for every sentence
 	trainFile.close();
-	updateHMM(emit_count, trans_count, state_count, sequence_count, init_count,
-			obs_count);
+	updateHMM(emit_count, trans_count, state_count, sequence_count, init_count, obs_count);
 
-	freeMatrix(trans_count, max_state, num_states);
-	freeMatrix(emit_count, num_states, num_obs);
+	freeMatrix(trans_count, _maxState, _numStates);
+	freeMatrix(emit_count, _numStates, _numObs);
 	delete[] state_count;
 	delete[] obs_count;
 	delete[] sequence_count;
@@ -1177,20 +1136,20 @@ void HMM::trainGibbsParallel(vector<string> files_list)
 	double *sequence_count;
 	double *init_count;
 	double *obs_count;
-	emit_count = createMatrix(num_states, num_obs);
-	trans_count = createMatrix(max_state, num_states);
+	emit_count = createMatrix(_numStates, _numObs);
+	trans_count = createMatrix(_maxState, _numStates);
 
-	state_count = new double[num_states];
-	zeroArray(state_count, num_states);
+	state_count = new double[_numStates];
+	zeroArray(state_count, _numStates);
 
-	obs_count = new double[num_obs];
-	zeroArray(obs_count, num_obs);
+	obs_count = new double[_numObs];
+	zeroArray(obs_count, _numObs);
 
-	sequence_count = new double[max_state];
-	zeroArray(sequence_count, max_state);
+	sequence_count = new double[_maxState];
+	zeroArray(sequence_count, _maxState);
 
-	init_count = new double[max_state];
-	zeroArray(init_count, max_state);
+	init_count = new double[_maxState];
+	zeroArray(init_count, _maxState);
 
 	double **temit_count;
 	double **ttrans_count;
@@ -1199,20 +1158,20 @@ void HMM::trainGibbsParallel(vector<string> files_list)
 	double *tinit_count;
 	double *tobs_count;
 
-	temit_count = createMatrix(num_states, num_obs);
-	ttrans_count = createMatrix(max_state, num_states);
+	temit_count = createMatrix(_numStates, _numObs);
+	ttrans_count = createMatrix(_maxState, _numStates);
 
-	tstate_count = new double[num_states];
-	zeroArray(tstate_count, num_states);
+	tstate_count = new double[_numStates];
+	zeroArray(tstate_count, _numStates);
 
-	tobs_count = new double[num_obs];
-	zeroArray(tobs_count, num_obs);
+	tobs_count = new double[_numObs];
+	zeroArray(tobs_count, _numObs);
 
-	tsequence_count = new double[max_state];
-	zeroArray(tsequence_count, max_state);
+	tsequence_count = new double[_maxState];
+	zeroArray(tsequence_count, _maxState);
 
-	tinit_count = new double[max_state];
-	zeroArray(tinit_count, max_state);
+	tinit_count = new double[_maxState];
+	zeroArray(tinit_count, _maxState);
 
 	for (int i = start; i < end; i++)
 	{
@@ -1237,7 +1196,7 @@ void HMM::trainGibbsParallel(vector<string> files_list)
 			stateArray = new int[len];
 			for (int i = 0; i < len; i++)
 			{
-				int origState = (rand() % (num_states - 1)) + 1;
+				int origState = (rand() % (_numStates - 1)) + 1;
 				int obs = words[i];
 				int prev_sequence = 0;
 				int r = 0;
@@ -1247,10 +1206,9 @@ void HMM::trainGibbsParallel(vector<string> files_list)
 					init_count[origState]++;
 				else
 				{
-					while ((r < order) && (i - 1 - r) >= 0)
+					while ((r < _order) && (i - 1 - r) >= 0)
 					{
-						prev_sequence += stateArray[(i - 1) - r] * int(pow(
-								num_states, r));
+						prev_sequence += stateArray[(i - 1) - r] * int(pow(_numStates, r));
 						r++;
 					}
 					trans_count[prev_sequence][origState]++;
@@ -1269,35 +1227,30 @@ void HMM::trainGibbsParallel(vector<string> files_list)
 				int prev_sequence = 0;
 				int r = 0;
 				//		cout << "Compute seq " <<endl;
-				while ((r < order) && (k - 1 - r) >= 0)
+				while ((r < _order) && (k - 1 - r) >= 0)
 				{
-					prev_sequence += stateArray[(k - 1) - r] * int(pow(
-							num_states, r));
+					prev_sequence += stateArray[(k - 1) - r] * int(pow(_numStates, r));
 					r++;
 				}
 				//		cout << "Done Compute seq " <<endl;
 				int origState = stateArray[k];
 				int nextState = stateArray[k + 1];
-				int next_sequence = num_states * (prev_sequence % int(pow(
-						num_states, order - 1))) + nextState;
-				double *dist = new double[num_states];
+				int next_sequence = _numStates * (prev_sequence % int(pow(_numStates, _order - 1))) + nextState;
+				double *dist = new double[_numStates];
 				double totalp = 0;
-				for (int state = 0; state < num_states; state++)
+				for (int state = 0; state < _numStates; state++)
 				{
-					int state_sequence = num_states * (prev_sequence % int(pow(
-							num_states, order - 1))) + state;
+					int state_sequence = _numStates * (prev_sequence % int(pow(_numStates, _order - 1))) + state;
 					if (prev_sequence == 0)
-						dist[state] = observation[state][obs]
-								* initial_probability[state]
-								* transition[state_sequence][nextState];
+						dist[state] = _pObservation[state][obs] * initial_probability[state]
+								* _pTransition[state_sequence][nextState];
 					else
-						dist[state] = observation[state][obs]
-								* transition[prev_sequence][state]
-								* transition[state_sequence][nextState];
+						dist[state] = _pObservation[state][obs] * _pTransition[prev_sequence][state]
+								* _pTransition[state_sequence][nextState];
 					totalp += dist[state];
 				}
-				renormalize(dist, num_states);
-				Distribution d(dist, num_states);
+				renormalize(dist, _numStates);
+				Distribution d(dist, _numStates);
 				int sample = d.generate_sample();
 				delete[] dist;
 
@@ -1316,7 +1269,7 @@ void HMM::trainGibbsParallel(vector<string> files_list)
 				//			sequence_count[next_sequence]--;
 				emit_count[origState][obs]--;
 				stateArray[k] = sample;
-				//			next_sequence = num_states*(prev_sequence  % int(pow(num_states, order-1))) + sample;
+				//			next_sequence = _numStates*(prev_sequence  % int(pow(_numStates, _order-1))) + sample;
 				state_count[sample]++;
 				//			trans_count[next_sequence][nextState]++;
 				//			sequence_count[next_sequence]++;
@@ -1330,53 +1283,46 @@ void HMM::trainGibbsParallel(vector<string> files_list)
 	} // for every file
 
 	//Collect parameters on root
-	for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+	for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 	{
-		MPI_Reduce(trans_count[state_sequence], ttrans_count[state_sequence],
-				num_states, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD);
-	}
-	MPI_Reduce(sequence_count, tsequence_count, max_state, MPI_DOUBLE, MPI_SUM,
-			root, MPI_COMM_WORLD);
-	MPI_Reduce(init_count, tinit_count, max_state, MPI_DOUBLE, MPI_SUM, root,
-			MPI_COMM_WORLD);
-	for (int state = 0; state < num_states; state++)
-	{
-		MPI_Reduce(emit_count[state], temit_count[state], num_obs, MPI_DOUBLE,
-				MPI_SUM, root, MPI_COMM_WORLD);
-	}
-	MPI_Reduce(state_count, tstate_count, num_states, MPI_DOUBLE, MPI_SUM,
-			root, MPI_COMM_WORLD);
-	MPI_Reduce(obs_count, tobs_count, num_obs, MPI_DOUBLE, MPI_SUM, root,
-			MPI_COMM_WORLD);
-
-	//Send updated parameters too all children
-	for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
-	{
-		MPI_Bcast(ttrans_count[state_sequence], num_states, MPI_DOUBLE, root,
+		MPI_Reduce(trans_count[state_sequence], ttrans_count[state_sequence], _numStates, MPI_DOUBLE, MPI_SUM, root,
 				MPI_COMM_WORLD);
 	}
-	MPI_Bcast(tsequence_count, max_state, MPI_DOUBLE, root, MPI_COMM_WORLD);
-	MPI_Bcast(tinit_count, max_state, MPI_DOUBLE, root, MPI_COMM_WORLD);
-	for (int state = 0; state < num_states; state++)
+	MPI_Reduce(sequence_count, tsequence_count, _maxState, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD);
+	MPI_Reduce(init_count, tinit_count, _maxState, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD);
+	for (int state = 0; state < _numStates; state++)
 	{
-		MPI_Bcast(temit_count[state], num_obs, MPI_DOUBLE, root, MPI_COMM_WORLD);
+		MPI_Reduce(emit_count[state], temit_count[state], _numObs, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD);
 	}
-	MPI_Bcast(tstate_count, num_states, MPI_DOUBLE, root, MPI_COMM_WORLD);
-	MPI_Bcast(tobs_count, num_obs, MPI_DOUBLE, root, MPI_COMM_WORLD);
+	MPI_Reduce(state_count, tstate_count, _numStates, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD);
+	MPI_Reduce(obs_count, tobs_count, _numObs, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD);
+
+	//Send updated parameters too all children
+	for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
+	{
+		MPI_Bcast(ttrans_count[state_sequence], _numStates, MPI_DOUBLE, root, MPI_COMM_WORLD);
+	}
+	MPI_Bcast(tsequence_count, _maxState, MPI_DOUBLE, root, MPI_COMM_WORLD);
+	MPI_Bcast(tinit_count, _maxState, MPI_DOUBLE, root, MPI_COMM_WORLD);
+	for (int state = 0; state < _numStates; state++)
+	{
+		MPI_Bcast(temit_count[state], _numObs, MPI_DOUBLE, root, MPI_COMM_WORLD);
+	}
+	MPI_Bcast(tstate_count, _numStates, MPI_DOUBLE, root, MPI_COMM_WORLD);
+	MPI_Bcast(tobs_count, _numObs, MPI_DOUBLE, root, MPI_COMM_WORLD);
 
 	//cout << "Update Step" << endl;
-	updateHMM(temit_count, ttrans_count, tstate_count, tsequence_count,
-			tinit_count, tobs_count);
+	updateHMM(temit_count, ttrans_count, tstate_count, tsequence_count, tinit_count, tobs_count);
 
-	freeMatrix(trans_count, max_state, num_states);
-	freeMatrix(emit_count, num_states, num_obs);
+	freeMatrix(trans_count, _maxState, _numStates);
+	freeMatrix(emit_count, _numStates, _numObs);
 	delete[] state_count;
 	delete[] sequence_count;
 	delete[] init_count;
 	delete[] obs_count;
 
-	freeMatrix(temit_count, num_states, num_obs);
-	freeMatrix(ttrans_count, max_state, num_states);
+	freeMatrix(temit_count, _numStates, _numObs);
+	freeMatrix(ttrans_count, _maxState, _numStates);
 	delete[] tstate_count;
 	delete[] tsequence_count;
 	delete[] tinit_count;
@@ -1405,78 +1351,76 @@ bool HMM::checkDistribution(double * dist, int n)
 void HMM::saveHMM(char * outputFile)
 {
 	ofstream HMMfile(outputFile);
-	HMMfile << order << " " << num_states << " " << num_obs << endl;
-	for (int i = 0; i < num_states; i++)
+	HMMfile << _order << " " << _numStates << " " << _numObs << endl;
+	for (int i = 0; i < _numStates; i++)
 	{
-		for (int j = 0; j < num_obs; j++)
+		for (int j = 0; j < _numObs; j++)
 		{
-			HMMfile << observation[i][j] << " ";
+			HMMfile << _pObservation[i][j] << " ";
 		}
 		HMMfile << endl;
 	}
-	for (int i = 0; i < num_obs; i++)
+	for (int i = 0; i < _numObs; i++)
 	{
-		for (int j = 0; j < num_states; j++)
+		for (int j = 0; j < _numStates; j++)
 		{
 			HMMfile << condstate_dist[i][j] << " ";
 		}
 		HMMfile << endl;
 	}
 	HMMfile << endl;
-	for (int i = 0; i < max_state; i++)
+	for (int i = 0; i < _maxState; i++)
 	{
-		for (int j = 0; j < num_states; j++)
+		for (int j = 0; j < _numStates; j++)
 		{
-			HMMfile << transition[i][j] << " ";
+			HMMfile << _pTransition[i][j] << " ";
 		}
 		HMMfile << endl;
 	}
-	for (int i = 0; i < max_state; i++)
+	for (int i = 0; i < _maxState; i++)
 	{
 		HMMfile << initial_probability[i] << endl;
 	}
 	HMMfile << endl;
-	for (int j = 0; j < num_states; j++)
+	for (int j = 0; j < _numStates; j++)
 	{
-		HMMfile << state_dist[j] << endl;
+		HMMfile << _pState[j] << endl;
 	}
 	HMMfile.close();
 }
 
 void HMM::checkTransition()
 {
-	for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+	for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 	{
 		double max = 0;
 		double entropy = 0;
-		for (int state = 0; state < num_states; state++)
+		for (int state = 0; state < _numStates; state++)
 		{
-			double p = transition[state_sequence][state];
+			double p = _pTransition[state_sequence][state];
 			if (p > max)
 				max = p;
 			entropy -= p * log2(p);
 		}
 
-		cout << "For state_seqeunce " << state_sequence << " entropy: "
-				<< entropy << "  and max: " << max << endl;
+		cout << "For state_seqeunce " << state_sequence << " entropy: " << entropy << "  and max: " << max << endl;
 	}
 }
 void HMM::checkObservation()
 {
-	for (int state = 0; state < num_states; state++)
+	for (int state = 0; state < _numStates; state++)
 	{
 		double max = 0;
 		double entropy = 0;
-		for (int obs = 0; obs < num_obs; obs++)
+		for (int obs = 0; obs < _numObs; obs++)
 		{
-			double p = observation[state][obs];
+			double p = _pObservation[state][obs];
 			if (p > max)
 				max = p;
 			entropy -= p * log2(p);
 		}
 
-		cout << "For state  " << state << " entropy: " << entropy
-				<< "  and max: " << max << endl;
+		cout << "For state  " << state << " entropy: " << entropy << "  and max: " << max << endl;
 	}
 
 }
@@ -1495,49 +1439,49 @@ void HMM::loadWithStateDist(char * hmm)
 		params[i] = atoi(buf.c_str());
 		i++;
 	}
-	order = params[0];
-	num_states = params[1];
-	num_obs = params[2];
-	max_state = int(pow(num_states, order));
+	_order = params[0];
+	_numStates = params[1];
+	_numObs = params[2];
+	_maxState = int(pow(_numStates, _order));
 
-	transition = createMatrix(max_state, num_states);
-	observation = createMatrix(num_states, num_obs);
-	initial_probability = new double[max_state];
+	_pTransition = createMatrix(_maxState, _numStates);
+	_pObservation = createMatrix(_numStates, _numObs);
+	initial_probability = new double[_maxState];
 
-	condstate_dist = createMatrix(num_obs, num_states);
-	state_dist = new double[num_states];
+	condstate_dist = createMatrix(_numObs, _numStates);
+	_pState = new double[_numStates];
 
-	for (int state = 0; state < num_states; state++)
+	for (int state = 0; state < _numStates; state++)
 	{
-		for (int obs = 0; obs < num_obs; obs++)
+		for (int obs = 0; obs < _numObs; obs++)
 		{
-			HMMfile >> observation[state][obs];
+			HMMfile >> _pObservation[state][obs];
 		}
 	}
-	for (int i = 0; i < num_obs; i++)
+	for (int i = 0; i < _numObs; i++)
 	{
-		for (int j = 0; j < num_states; j++)
+		for (int j = 0; j < _numStates; j++)
 		{
 			HMMfile >> condstate_dist[i][j];
 		}
 	}
-	for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
+	for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
 	{
-		for (int state = 0; state < num_states; state++)
+		for (int state = 0; state < _numStates; state++)
 		{
-			HMMfile >> transition[state_sequence][state];
+			HMMfile >> _pTransition[state_sequence][state];
 		}
 	}
 
-	for (int state_sequence = 0; state_sequence < max_state; state_sequence++)
-	{
-		HMMfile >> initial_probability[state_sequence];
+//	for (int state_sequence = 0; state_sequence < _maxState; state_sequence++)
+//	{
+//		HMMfile >> initial_probability[state_sequence];
+//
+//	}
 
-	}
-
-	for (int j = 0; j < num_states; j++)
+	for (int j = 0; j < _numStates; j++)
 	{
-		HMMfile >> state_dist[j];
+		HMMfile >> _pState[j];
 	}
 
 	HMMfile.close();
@@ -1545,25 +1489,25 @@ void HMM::loadWithStateDist(char * hmm)
 /*
  void HMM::recomputeEmitDist()
  {
- double * word_dist = new double[num_obs];
+ double * word_dist = new double[_numObs];
 
- for (int w = 0; w < num_obs; w++)
+ for (int w = 0; w < _numObs; w++)
  {
  word_dist[w] = 0;
- for (int i = 0; i <num_states; i++)
+ for (int i = 0; i <_numStates; i++)
  {
- word_dist[w] += observation[i][w]*state_dist[i];
+ word_dist[w] += _pObservation[i][w]*_pState[i];
  }
  }
 
- renormalize(word_dist, num_obs);
- for (int state =1; state < num_states; state++)
+ renormalize(word_dist, _numObs);
+ for (int state =1; state < _numStates; state++)
  {
- for (int obs = 0; obs < num_obs; obs++)
+ for (int obs = 0; obs < _numObs; obs++)
  {
- observation[state][obs] = condstate_dist[obs][state]*word_dist[obs];
+ _pObservation[state][obs] = condstate_dist[obs][state]*word_dist[obs];
  }
- renormalize(observation[state], num_obs);
+ renormalize(_pObservation[state], _numObs);
  }
  }*/
 

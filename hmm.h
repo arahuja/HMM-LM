@@ -2,36 +2,28 @@
 #define HMM_H
 
 #include<string>
-#include "mpi.h"
-#include "utilities.h"
 #include<vector>
-#include "basicProbability.h"
 using namespace std;
 
 class HMM
 {
-
 protected:
-	int order;
-	int num_states;
-	int max_state;
-	int num_obs;
-	double **observation;
-	double **transition;
-	double *initial_probability;
-	double* state_dist;
-	virtual void updateHMM(double **trans, double **emit, double *state_count,
-			double *sequence_count, double* init_count, double* obs_count);
-	virtual void computeForwardMatrix(vector<int> words, double ** forward,
-			int len);
-	virtual void computeBackwardMatrix(vector<int> words, double ** backward,
-			int len);
-	virtual void computeForwardMatrixScaled(vector<int> words,
-			double** forward, double * scaleArray, int len);
-	virtual void computeSubForwardMatrixScaled(vector<int> words,
-			double** forward, double * scaleArray, int len, int k);
-	virtual void computeBackwardMatrixScaled(vector<int> words,
-			double** backward, double * scaleArray, int len);
+	int _order;
+	int _numStates;
+	int _maxState;
+	int _numObs;
+	double **_pObservation;
+	double **_pTransition;
+	double* _pState;
+	double* initial_probability;
+	virtual void updateHMM(double **trans, double **emit, double *state_count, double *sequence_count,
+			double* init_count, double* obs_count);
+	virtual void computeForwardMatrix(vector<int> words, double ** forward, int len);
+	virtual void computeBackwardMatrix(vector<int> words, double ** backward, int len);
+	virtual void computeForwardMatrixScaled(vector<int> words, double** forward, double * scaleArray, int len);
+	virtual void
+			computeSubForwardMatrixScaled(vector<int> words, double** forward, double * scaleArray, int len, int k);
+	virtual void computeBackwardMatrixScaled(vector<int> words, double** backward, double * scaleArray, int len);
 
 public:
 	HMM(int r, int n_states, int n_obs);

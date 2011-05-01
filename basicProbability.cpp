@@ -10,6 +10,7 @@
 #include "basicProbability.h"
 #include<vector>
 #include<map>
+#include<list>
 
 using std::map;
 using std::list;
@@ -74,7 +75,7 @@ double klDivergence(double* p, double* q, int n)
 	double result = 0;
 	for (int i = 0; i < n; i++)
 	{
-		if (dist1[i] != 0 && dist2[i] != 0)
+		if (p[i] != 0 && q[i] != 0)
 			result += p[i] * log2(p[i] / q[i]);
 	}
 

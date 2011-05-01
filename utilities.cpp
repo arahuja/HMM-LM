@@ -1,40 +1,23 @@
-#include "utilities.h"
 
 #include <map>
 #include <string>
 #include <stdlib.h>
 #include <vector>
 #include <sstream>
-#include <map>
 #include <fstream>
 #include<iostream>
+#include "utilities.h"
 
 using namespace std;
 
-int maxVal(double* arr, int n)
+bool sort_scorepairGREATER(const ScorePair& left, const ScorePair& right)
 {
-	int maxindex = 0;
-	double maxval = arr[0];
-	for (int i = 1; i < n; i++)
-	{
-		if (arr[i] > maxval)
-		{
-			maxval = arr[i];
-			maxindex = i;
-		}
-	}
-
-	return maxindex;
+	return left.second > right.second;
 }
 
-void freeMatrix(double** matrix, int m, int n)
+bool sort_scorepairLESSTHAN(const ScorePair& left, const ScorePair& right)
 {
-
-	for (int i = 0; i < m; i++)
-	{
-		delete[] matrix[i];
-	}
-	delete[] matrix;
+	return left.second < right.second;
 }
 
 double** createMatrix(int m, int n)
@@ -50,43 +33,6 @@ double** createMatrix(int m, int n)
 		}
 	}
 	return matrix;
-}
-
-void printMatrix(double ** matrix, int m, int n)
-{
-	for (int i = 0; i < m; i++)
-	{
-		for (int j = 0; j < n; j++)
-		{
-			cout << matrix[i][j] << " ";
-		}
-		cout << endl;
-	}
-}
-
-void printArray(double* array, int n)
-{
-	for (int j = 0; j < n; j++)
-	{
-		cout << array[j] << " ";
-	}
-	cout << endl;
-}
-
-void zeroArray(double * a, int n)
-{
-	for (int i = 0; i < n; i++)
-	{
-		a[i] = 0;
-	}
-}
-
-void zeroArray(int * a, int n)
-{
-	for (int i = 0; i < n; i++)
-	{
-		a[i] = 0;
-	}
 }
 
 void createVocab(char * vocab, char * vocabOut)
@@ -130,8 +76,7 @@ void createVocab(char * vocab, char * vocabOut)
 	map<string, int>::iterator iter;
 	for (iter = vocabMap.begin(); iter != vocabMap.end(); ++iter)
 	{
-		outputFile << iter->first << " " << iter->second << " "
-				<< wordCount[iter->first] << endl;
+		outputFile << iter->first << " " << iter->second << " " << wordCount[iter->first] << endl;
 		//cout << iter->first << " " <<iter->second << wordCount[iter->first] << endl;
 	}
 
@@ -193,8 +138,7 @@ void translateFile(char * vocab, char * input, char* output)
 	outputFile.close();
 }
 
-void loadVocabFromFile(char* vocab, map<string, int> * stringToIntvocabMap,
-		map<int, string> * intToStringvocabMap)
+void loadVocabFromFile(char* vocab, map<string, int> * stringToIntvocabMap, map<int, string> * intToStringvocabMap)
 {
 
 	ifstream vocabFile(vocab);
@@ -212,16 +156,14 @@ void loadVocabFromFile(char* vocab, map<string, int> * stringToIntvocabMap,
 		{
 			words.push_back(buf);
 		}
-		stringToIntvocabMap->insert(pair<string, int> (words[0], atoi(
-				words[1].c_str())));
-		intToStringvocabMap->insert(pair<int, string> (atoi(words[1].c_str()),
-				words[0]));
+		stringToIntvocabMap->insert(pair<string, int> (words[0], atoi(words[1].c_str())));
+		intToStringvocabMap->insert(pair<int, string> (atoi(words[1].c_str()), words[0]));
 	}
 	vocabFile.close();
 }
 
-void loadVocabFromFile(char* vocab, map<string, int> * stringToIntvocabMap,
-		map<int, string> * intToStringvocabMap, map<int, int> * wordCount)
+void loadVocabFromFile(char* vocab, map<string, int> * stringToIntvocabMap, map<int, string> * intToStringvocabMap,
+		map<int, int> * wordCount)
 {
 
 	ifstream vocabFile(vocab);
@@ -239,44 +181,13 @@ void loadVocabFromFile(char* vocab, map<string, int> * stringToIntvocabMap,
 		{
 			words.push_back(buf);
 		}
-		stringToIntvocabMap->insert(pair<string, int> (words[0], atoi(
-				words[1].c_str())));
-		intToStringvocabMap->insert(pair<int, string> (atoi(words[1].c_str()),
-				words[0]));
-		wordCount->insert(pair<int, int> (atoi(words[1].c_str()), atoi(
-				words[2].c_str())));
+		stringToIntvocabMap->insert(pair<string, int> (words[0], atoi(words[1].c_str())));
+		intToStringvocabMap->insert(pair<int, string> (atoi(words[1].c_str()), words[0]));
+		wordCount->insert(pair<int, int> (atoi(words[1].c_str()), atoi(words[2].c_str())));
 	}
 	vocabFile.close();
 }
-bool sort_scorepairGREATER(const score_pair& left, const score_pair& right)
-{
-	return left.second > right.second;
-}
 
-bool sort_scorepairLESSTHAN(const score_pair& left, const score_pair& right)
-{
-	return left.second < right.second;
-}
-
-int argmax(double * arr, int n)
-{
-	if (n == 0)
-	{
-		return 0;
-	}
-	double max = arr[0];
-	int maxIndex = 0;
-	for (int i = 1; i < n; i++)
-	{
-		if (arr[i] > max)
-		{
-			max = arr[i];
-			maxIndex = i;
-		}
-	}
-
-	return maxIndex;
-}
 void renormalize(double * dist, int n)
 {
 
@@ -293,3 +204,4 @@ void renormalize(double * dist, int n)
 	}
 
 }
+
