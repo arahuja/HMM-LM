@@ -1,0 +1,119 @@
+K 25
+svn:wc:ra_dav:version-url
+V 22
+/svn/!svn/ver/15/trunk
+END
+basicProbability.h
+K 25
+svn:wc:ra_dav:version-url
+V 41
+/svn/!svn/ver/14/trunk/basicProbability.h
+END
+evalHMM.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 33
+/svn/!svn/ver/9/trunk/evalHMM.cpp
+END
+hmm.h
+K 25
+svn:wc:ra_dav:version-url
+V 28
+/svn/!svn/ver/14/trunk/hmm.h
+END
+utilities_template.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 45
+/svn/!svn/ver/14/trunk/utilities_template.cpp
+END
+createVocab.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 37
+/svn/!svn/ver/9/trunk/createVocab.cpp
+END
+utilities.h
+K 25
+svn:wc:ra_dav:version-url
+V 34
+/svn/!svn/ver/15/trunk/utilities.h
+END
+evalIter.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 34
+/svn/!svn/ver/9/trunk/evalIter.cpp
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 31
+/svn/!svn/ver/14/trunk/Makefile
+END
+testHMM.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 33
+/svn/!svn/ver/9/trunk/testHMM.cpp
+END
+getNearestNeighbors.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 45
+/svn/!svn/ver/9/trunk/getNearestNeighbors.cpp
+END
+trainIter.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 35
+/svn/!svn/ver/9/trunk/trainIter.cpp
+END
+trainHMM.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 34
+/svn/!svn/ver/9/trunk/trainHMM.cpp
+END
+distribution.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 38
+/svn/!svn/ver/9/trunk/distribution.cpp
+END
+basicProbability.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 43
+/svn/!svn/ver/14/trunk/basicProbability.cpp
+END
+hmm.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 30
+/svn/!svn/ver/14/trunk/hmm.cpp
+END
+distribution.h
+K 25
+svn:wc:ra_dav:version-url
+V 36
+/svn/!svn/ver/9/trunk/distribution.h
+END
+trainGibbs.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 36
+/svn/!svn/ver/9/trunk/trainGibbs.cpp
+END
+utilities.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 36
+/svn/!svn/ver/14/trunk/utilities.cpp
+END
+translateFile.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 39
+/svn/!svn/ver/9/trunk/translateFile.cpp
+END
